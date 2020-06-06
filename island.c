@@ -78,7 +78,7 @@ void printStatus(){
         for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
             setColor(island[i][j]);
             printf("%d", island[i][j]);
-            printf("\033[0m");
+            setColor(-1);
             printf(", ");
         }
         printf("\t\t");
@@ -89,7 +89,7 @@ void printStatus(){
             }else{
                 printf("%d", positions[i][j]);
             }
-            printf("\033[0m");
+            setColor(-1);
             printf(", ");
         }
         printf("\n");
@@ -206,7 +206,11 @@ void *ballBehaviour(void *threadId) {
         getXY(direction, ball->x, ball->y, &newX, &newY);
         if(island[newX][newY] <= island[ball->x][ball->y]){ // Check if height is possible
             tryMoving(ball, ball->x, ball->y, newX, newY);
-            printf("To [%d][%d] : level %d\n", balls[tid].x, balls[tid].y, island[ball->x][ball->y]);
+            int newHeight = island[ball->x][ball->y];
+            printf("To [%d][%d] : level %d\n", balls[tid].x, balls[tid].y, newHeight);
+            printf("Ball %ld:: last speed: %d, ", tid, speed);
+            speed = speed-(100*(currHeight-newHeight));
+            printf("current speed: %d\n", speed);
             if(island[ball->x][ball->y] == 0){
                 finished = 0;
                 positions[ball->x][ball->y] = -1;
