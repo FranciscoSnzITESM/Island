@@ -47,12 +47,40 @@ void printArray(int array[][10]){
     }
 }
 
+void setColor(int level){
+    switch(level) {
+        case 0:
+            printf("\033[0;34m"); // Set to blue
+            break;
+        case 1:
+            printf("\033[0;36m"); // Set to cyan
+            break;
+        case 2:
+            printf("\033[0;32m"); // Set to green 
+            break;
+        case 3:
+            printf("\033[0;33m"); // Set to yellow
+            break;
+        case 4:
+            printf("\033[0;31m"); // Set to red
+           
+            break;
+        case 5:
+             printf("\033[0;35m"); // Set to magenta
+            break;
+        default:
+            printf("\033[0m");
+    }
+}
+
 void printStatus(){
     int i, j;
     for(i = 0; i < sizeof(island)/sizeof(island[0]);i++){
         for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
-            // printf("\033[0;31m"); // Set to red
-            printf("%d, ", island[i][j]);
+            setColor(island[i][j]);
+            printf("%d", island[i][j]);
+            printf("\033[0m");
+            printf(", ");
         }
         printf("\t\t");
         for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
