@@ -139,6 +139,24 @@ void getXY(int dir, struct ballData *ball, int *newX, int *newY){
     }
 }
 
+int checkIfDrowned(struct ballData *ball){
+    if(island[ball->x][ball->y] == 0){ // Check if drowned
+        positions[ball->x][ball->y] = -1;
+        if(ball->x == 0){
+            northSea++;
+        } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
+            southSea++;
+        } else if (ball->y == 0) {
+            westSea++;
+        } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
+            eastSea++;
+        }
+        printf("Ball %ld Landed in water\n", ball->id);
+        return 1;
+    }
+    return 0;
+}
+
 void tryMoving(struct ballData *ball, int newX, int newY){
     if (positions[newX][newY] == -1){// No collision
         positions[newX][newY] = ball->id;
@@ -167,25 +185,10 @@ void collision(struct ballData *ball1, struct ballData *ball2){
     printf("Ball %ld moving from [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
     getXY(dir2, ball2, &newX, &newY);
     tryMoving(ball2, newX, newY);
-    printf("To [%d][%d] : level %d\n", ball2->x, ball2->y, island[ball2->x][ball2->y]);
+    printf("Ball %ld moved to [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
+    checkIfDrowned(ball2);
 }
-int checkIfDrowned(struct ballData *ball){
-    if(island[ball->x][ball->y] == 0){ // Check if drowned (We need to check this after collission)
-        positions[ball->x][ball->y] = -1;
-        if(ball->x == 0){
-            northSea++;
-        } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
-            southSea++;
-        } else if (ball->y == 0) {
-            westSea++;
-        } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
-            eastSea++;
-        }
-        printf("Ball %ld Landed in water\n", ball->id);
-        return 1;
-    }
-    return 0;
-}
+
 void *ballBehaviour(void *threadId) { 
     long tid = (long)threadId;
     int finished = 0;
@@ -216,7 +219,7 @@ void *ballBehaviour(void *threadId) {
     while(!finished){
         usleep(speed * 1000); // sleep in microseconds
         pthread_mutex_lock(&lockTurn);
-        if(checkIfDrowned(ball)){
+        if(island[ball->x][ball->y] == 0){
             pthread_mutex_unlock(&lockTurn);
             break;
         }
@@ -228,7 +231,7 @@ void *ballBehaviour(void *threadId) {
         if(island[newX][newY] <= island[ball->x][ball->y]){ // Check if height is possible
             tryMoving(ball, newX, newY);
             int newHeight = island[ball->x][ball->y];
-            printf("To [%d][%d] : level %d\n", balls[tid].x, balls[tid].y, newHeight);
+            printf("Ball %ld moved to [%d][%d] : level %d\n", balls[tid].id, balls[tid].x, balls[tid].y, newHeight);
             printf("Ball %ld:: last speed: %d, ", tid, speed);
             speed = speed-(100*(currHeight-newHeight));
             printf("current speed: %d\n", speed);
