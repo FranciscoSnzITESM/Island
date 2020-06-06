@@ -36,6 +36,7 @@ struct ballData {
 };
 
 struct ballData *balls;
+int trappedBalls, northSea, southSea, eastSea, westSea;
 
 void printArray(int array[][10]){
     int i, j;
@@ -184,6 +185,15 @@ void *ballBehaviour(void *threadId) {
                 // Check if landed in water from the start
             if(island[ball->x][ball->y] == 0){
                 alreadyInWater = 1;
+                if(ball->x == 0){
+                    northSea++;
+                } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
+                    southSea++;
+                } else if (ball->y == 0) {
+                    westSea++;
+                } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
+                    eastSea++;
+                }
                 positions[ball->x][ball->y] = -1;
                 printf("Landed directly in water\n");
             }
@@ -214,11 +224,21 @@ void *ballBehaviour(void *threadId) {
             if(island[ball->x][ball->y] == 0){
                 finished = 0;
                 positions[ball->x][ball->y] = -1;
+                if(ball->x == 0){
+                    northSea++;
+                } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
+                    southSea++;
+                } else if (ball->y == 0) {
+                    westSea++;
+                } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
+                    eastSea++;
+                }
                 printf("Landed in water\n");
             }
             printStatus();
         } else {
             printf("Ball %ld stucked in island at [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
+            trappedBalls++;
             finished = 0;
             positions[ball->x][ball->y] = -1;
         }
@@ -245,7 +265,11 @@ int main(int argc, char** argv){
         printf("Error, number of balls must a number or be higher than 0\n");
         return -1;
     }
-
+    trappedBalls = 0;
+    northSea = 0;
+    southSea = 0;
+    eastSea = 0;
+    westSea = 0;
     // pthread_t threads[n];
     balls = malloc(sizeof(struct ballData)*n);
     int rc;
@@ -265,5 +289,19 @@ int main(int argc, char** argv){
     for(t=0;t<n;t++){
         pthread_join(balls[t].tid, NULL);
     }
+
+    printf("\n");
+    printf("+--------------------+------+\n");
+    printf("| Balls trapped      | %-4d |\n", trappedBalls);
+    printf("+--------------------+------+\n");
+    printf("| Balls in north sea | %-4d |\n", northSea);
+    printf("+--------------------+------+\n");
+    printf("| Balls in south sea | %-4d |\n", southSea);
+    printf("+--------------------+------+\n");
+    printf("| Balls in east sea  | %-4d |\n", eastSea);
+    printf("+--------------------+------+\n");
+    printf("| Balls in west sea  | %-4d |\n", westSea);
+    printf("+--------------------+------+\n");
+
     return 0;
 }
