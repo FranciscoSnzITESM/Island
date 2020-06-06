@@ -11,7 +11,13 @@ const int island[5][7] = {
     {0, 0, 0, 0, 0, 0, 0}
 };
 
-int positions[5][7] = {-1};
+int positions[5][7] = {
+    {-1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1}
+};
 
 pthread_mutex_t lockTurn;
 
@@ -115,6 +121,7 @@ void *ballBehaviour(void *threadId) {
         }
         pthread_mutex_unlock(&lockTurn);
     }
+    finished = 1;
     // Check if landed in water from the start
     if(island[ball->x][ball->y] == 0){
         finished = 0;
@@ -122,8 +129,8 @@ void *ballBehaviour(void *threadId) {
     }
     // Movement
     int speed = 1000; // 1 second
-    finished = 1;
     while(finished){
+        printf("hi\n");
         usleep(speed * 1000); // sleep in microseconds
         pthread_mutex_lock(&lockTurn);
         printf("Thread %ld moving from [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
@@ -131,7 +138,7 @@ void *ballBehaviour(void *threadId) {
         int direction = getDirection(ball->x, ball->y);
         int newX, newY;
         getXY(direction, ball, &newX, &newY);
-        
+        tryMoving(ball, newX, newY);
         printf("To [%d][%d] : height %d\n", balls[tid].x, balls[tid].y, island[ball->x][ball->y]);
         if(island[ball->x][ball->y] == 0){
             finished = 0;
