@@ -2,42 +2,71 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h> 
+#include <time.h>
 
-const int island[5][7] = {
-    {0, 0, 0, 0, 0, 0, 0},
-    {0, 1, 1, 1, 1, 1, 0},
-    {0, 1, 2, 3, 2, 1, 0},
-    {0, 1, 1, 1, 1, 1, 0},
-    {0, 0, 0, 0, 0, 0, 0}
+const int island[8][10] = {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 1, 1, 2, 1, 2, 1, 2, 1, 0},
+    {0, 2, 2, 2, 3, 3, 3, 1, 2, 0},
+    {0, 2, 1, 2, 3, 4, 3, 2, 2, 0},
+    {0, 3, 3, 3, 3, 3, 3, 2, 1, 0},
+    {0, 3, 4, 3, 1, 2, 2, 2, 1, 0},
+    {0, 3, 3, 3, 1, 2, 1, 2, 1, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
-int positions[5][7] = {
-    {-1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1}
+int positions[8][10] = {
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 };
 
 pthread_mutex_t lockTurn;
 
 struct ballData {
-    pthread_t id;
+    pthread_t tid;
+    long id;
     int x;
     int y;
 };
 
 struct ballData *balls;
 
-void printArray(int array[][7]){
+void printArray(int array[][10]){
     int i, j;
-    for(i = 0; i < 5;i++){
-        for (j =0; j < 7; j++){
+    for(i = 0; i < sizeof(island)/sizeof(island[0]);i++){
+        for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
             printf("%d, ", array[i][j]);
         }
         printf("\n");
     }
 }
+
+void printStatus(){
+    int i, j;
+    for(i = 0; i < sizeof(island)/sizeof(island[0]);i++){
+        for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
+            // printf("\033[0;31m"); // Set to red
+            printf("%d, ", island[i][j]);
+        }
+        printf("\t\t");
+        for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
+            if(positions[i][j] == -1){
+                
+                printf("_, ");
+            }else{
+                printf("%d, ", positions[i][j]);
+            }
+        }
+        printf("\n");
+    }
+}
+
 int getDirection(int x, int y){
     //dir :: N=0 S=1 E=2 W=3
     int dir = 0; // North is the first one
@@ -106,48 +135,66 @@ void collision(struct ballData *ball1, struct ballData *ball2){
 void *ballBehaviour(void *threadId) { 
     long tid = (long)threadId;
     int finished = 1;
+    int alreadyInWater = 0;
     struct ballData *ball = &balls[tid];
     // First position
     while(finished){
         int x = rand() % 5;
         int y = rand() % 7;
         pthread_mutex_lock(&lockTurn);
-        if(positions[x][y] == 0){
-            printf("init pos: [%d][%d]\n", x, y);
+        if(positions[x][y] == -1){
+            printf("Init pos ball %ld: [%d][%d]\n", tid, x, y);
             positions[x][y] = tid;
             ball->x = x;
             ball->y = y;
             finished = 0;
+                // Check if landed in water from the start
+            if(island[ball->x][ball->y] == 0){
+                alreadyInWater = 1;
+                positions[ball->x][ball->y] = -1;
+                printf("Landed directly in water\n");
+            }
         }
         pthread_mutex_unlock(&lockTurn);
     }
     finished = 1;
-    // Check if landed in water from the start
-    if(island[ball->x][ball->y] == 0){
+    if(alreadyInWater){
         finished = 0;
-        printf("Landed directly in water\n");
     }
     // Movement
     int speed = 1000; // 1 second
     while(finished){
-        printf("hi\n");
         usleep(speed * 1000); // sleep in microseconds
         pthread_mutex_lock(&lockTurn);
-        printf("Thread %ld moving from [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
+        printf("Ball %ld moving from [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
         int currHeight = island[ball->x][ball->y];
         int direction = getDirection(ball->x, ball->y);
         int newX, newY;
         getXY(direction, ball, &newX, &newY);
-        tryMoving(ball, newX, newY);
-        printf("To [%d][%d] : height %d\n", balls[tid].x, balls[tid].y, island[ball->x][ball->y]);
-        if(island[ball->x][ball->y] == 0){
+        if(island[newX][newY] <= island[ball->x][ball->y]){
+            tryMoving(ball, newX, newY);
+            printf("To [%d][%d] : level %d\n", balls[tid].x, balls[tid].y, island[ball->x][ball->y]);
+            if(island[ball->x][ball->y] == 0){
+                finished = 0;
+                positions[ball->x][ball->y] = -1;
+                printf("Landed in water\n");
+            }
+            printStatus();
+        } else {
+            printf("Ball %ld stucked in island at [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
             finished = 0;
-            printf("Landed in water\n");
+            positions[ball->x][ball->y] = -1;
         }
         pthread_mutex_unlock(&lockTurn);
     }
     pthread_exit(NULL);
 } 
+
+void *printFirstMap(void *threadId){
+    usleep(1000 * 500);
+    printStatus();
+    pthread_exit(NULL);
+}
 
 int main(int argc, char** argv){
     if(argc < 2) {
@@ -155,7 +202,7 @@ int main(int argc, char** argv){
         printf("Usage: ./island [numberOfBalls]\n");
         return -1;
     }
-
+    srand(time(0));
     int n = atoi(argv[1]);
     if(n <= 0){
         printf("Error, number of balls must a number or be higher than 0\n");
@@ -168,14 +215,18 @@ int main(int argc, char** argv){
     long t;
     for(t=0; t<n; t++){
         // printf("In main: creating thread %ld\n", t);
-        rc = pthread_create(&(balls[t].id), NULL, ballBehaviour, (void *)t);
+        rc = pthread_create(&(balls[t].tid), NULL, ballBehaviour, (void *)t);
+        balls[t].id = t;
         if (rc){
             printf("ERROR; return code from pthread_create() is %d\n", rc);
             exit(-1);
         }
     }
+    pthread_t firstMapPrint;
+    pthread_create(&firstMapPrint, NULL, printFirstMap, NULL);
+    pthread_join(firstMapPrint, NULL);
     for(t=0;t<n;t++){
-        pthread_join(balls[t].id, NULL);
+        pthread_join(balls[t].tid, NULL);
     }
     return 0;
 }
