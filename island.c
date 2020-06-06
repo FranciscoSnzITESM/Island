@@ -36,6 +36,7 @@ struct ballData {
 };
 
 struct ballData *balls;
+struct ballData *ballInTransition; // Special for chained collission management storage
 int trappedBalls, northSea, southSea, eastSea, westSea;
 
 void printArray(int array[][10]){
@@ -115,30 +116,30 @@ int getDirection(int x, int y){
     return dir;
 }
 
-void collision(struct ballData *ball1, int oldX, int oldY, struct ballData *ball2);
+void collision(struct ballData *ball1, struct ballData *ball2);
 
-void getXY(int dir, int oldX, int oldY, int *newX, int *newY){
+void getXY(int dir, struct ballData *ball, int *newX, int *newY){
     switch (dir){
         case 0: // N
-            *newX = oldX-1;
-            *newY = oldY;
+            *newX = ball->x-1;
+            *newY = ball->y;
             break;
         case 1: // S
-            *newX = oldX+1;
-            *newY = oldY;
+            *newX = ball->x+1;
+            *newY = ball->y;
             break;
         case 2: // E
-            *newX = oldX;
-            *newY = oldY+1;
+            *newX = ball->x;
+            *newY = ball->y+1;
             break;
         case 3: // W
-            *newX = oldX;
-            *newY = oldY-1;
+            *newX = ball->x;
+            *newY = ball->y-1;
             break;
     }
 }
 
-void tryMoving(struct ballData *ball, int oldX, int oldY, int newX, int newY){
+void tryMoving(struct ballData *ball, int newX, int newY){
     if (positions[newX][newY] == -1){// No collision
         positions[newX][newY] = ball->id;
         if (positions[ball->x][ball->y] == ball->id){
@@ -151,28 +152,47 @@ void tryMoving(struct ballData *ball, int oldX, int oldY, int newX, int newY){
         printf("Collision!\n");
         setColor(-1);
         struct ballData *ball2 = &balls[positions[newX][newY]];
-        collision(ball, newX, newY, ball2);
+        collision(ball, ball2);
     }
 }
-
-void collision(struct ballData *ball1, int oldX, int oldY, struct ballData *ball2){
+void collision(struct ballData *ball1, struct ballData *ball2){
+    // Get Random Directions
     int dir1 = rand() % 4;
     int dir2;
     while((dir2 = rand() % 4) == dir1);
     int newX, newY;
-    getXY(dir1, oldX, oldY, &newX, &newY);
-    tryMoving(ball1, oldX, oldY, newX, newY);
-    getXY(dir2, oldX, oldY, &newX, &newY);
-    tryMoving(ball2, oldX, oldY, newX, newY);
+    getXY(dir1, ball1, &newX, &newY);
+    tryMoving(ball1, newX, newY);
+    // Finish moving the other ball
+    printf("Ball %ld moving from [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
+    getXY(dir2, ball2, &newX, &newY);
+    tryMoving(ball2, newX, newY);
+    printf("To [%d][%d] : level %d\n", ball2->x, ball2->y, island[ball2->x][ball2->y]);
 }
-
+int checkIfDrowned(struct ballData *ball){
+    if(island[ball->x][ball->y] == 0){ // Check if drowned (We need to check this after collission)
+        positions[ball->x][ball->y] = -1;
+        if(ball->x == 0){
+            northSea++;
+        } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
+            southSea++;
+        } else if (ball->y == 0) {
+            westSea++;
+        } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
+            eastSea++;
+        }
+        printf("Ball %ld Landed in water\n", ball->id);
+        return 1;
+    }
+    return 0;
+}
 void *ballBehaviour(void *threadId) { 
     long tid = (long)threadId;
-    int finished = 1;
+    int finished = 0;
     int alreadyInWater = 0;
     struct ballData *ball = &balls[tid];
     // First position
-    while(finished){
+    while(!finished){
         int x = rand() % sizeof(island)/sizeof(island[0]);
         int y = rand() % sizeof(island[0])/sizeof(island[0][0]);
         pthread_mutex_lock(&lockTurn);
@@ -181,65 +201,43 @@ void *ballBehaviour(void *threadId) {
             positions[x][y] = tid;
             ball->x = x;
             ball->y = y;
-            finished = 0;
-                // Check if landed in water from the start
-            if(island[ball->x][ball->y] == 0){
-                alreadyInWater = 1;
-                if(ball->x == 0){
-                    northSea++;
-                } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
-                    southSea++;
-                } else if (ball->y == 0) {
-                    westSea++;
-                } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
-                    eastSea++;
-                }
-                positions[ball->x][ball->y] = -1;
-                printf("Landed directly in water\n");
-            }
+            finished = 1;
+            // Check if landed in water from the start
+            alreadyInWater = checkIfDrowned(ball);
         }
         pthread_mutex_unlock(&lockTurn);
     }
-    finished = 1;
+    finished = 0;
     if(alreadyInWater){
-        finished = 0;
+        finished = 1;
     }
     // Movement
     int speed = 1000; // 1 second
-    while(finished){
+    while(!finished){
         usleep(speed * 1000); // sleep in microseconds
         pthread_mutex_lock(&lockTurn);
+        if(checkIfDrowned(ball)){
+            pthread_mutex_unlock(&lockTurn);
+            break;
+        }
         printf("Ball %ld moving from [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
         int currHeight = island[ball->x][ball->y];
         int direction = getDirection(ball->x, ball->y);
         int newX, newY;
-        getXY(direction, ball->x, ball->y, &newX, &newY);
+        getXY(direction, ball, &newX, &newY);
         if(island[newX][newY] <= island[ball->x][ball->y]){ // Check if height is possible
-            tryMoving(ball, ball->x, ball->y, newX, newY);
+            tryMoving(ball, newX, newY);
             int newHeight = island[ball->x][ball->y];
             printf("To [%d][%d] : level %d\n", balls[tid].x, balls[tid].y, newHeight);
             printf("Ball %ld:: last speed: %d, ", tid, speed);
             speed = speed-(100*(currHeight-newHeight));
             printf("current speed: %d\n", speed);
-            if(island[ball->x][ball->y] == 0){
-                finished = 0;
-                positions[ball->x][ball->y] = -1;
-                if(ball->x == 0){
-                    northSea++;
-                } else if (ball->x == (sizeof(island)/sizeof(island[0]))-1){
-                    southSea++;
-                } else if (ball->y == 0) {
-                    westSea++;
-                } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
-                    eastSea++;
-                }
-                printf("Landed in water\n");
-            }
+            finished = checkIfDrowned(ball);
             printStatus();
-        } else {
+        } else { // If Stucked
             printf("Ball %ld stucked in island at [%d][%d] : level %d\n", tid, ball->x, ball->y, island[ball->x][ball->y]);
             trappedBalls++;
-            finished = 0;
+            finished = 1;
             positions[ball->x][ball->y] = -1;
         }
         pthread_mutex_unlock(&lockTurn);
@@ -272,6 +270,7 @@ int main(int argc, char** argv){
     westSea = 0;
     // pthread_t threads[n];
     balls = malloc(sizeof(struct ballData)*n);
+    ballInTransition = malloc(sizeof(struct ballData));
     int rc;
     long t;
     for(t=0; t<n; t++){
