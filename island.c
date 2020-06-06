@@ -63,7 +63,6 @@ void setColor(int level){
             break;
         case 4:
             printf("\033[0;31m"); // Set to red
-           
             break;
         case 5:
              printf("\033[0;35m"); // Set to magenta
@@ -84,12 +83,14 @@ void printStatus(){
         }
         printf("\t\t");
         for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
+            setColor(island[i][j]);
             if(positions[i][j] == -1){
-                
-                printf("_, ");
+                printf("_");
             }else{
-                printf("%d, ", positions[i][j]);
+                printf("%d", positions[i][j]);
             }
+            printf("\033[0m");
+            printf(", ");
         }
         printf("\n");
     }
@@ -113,51 +114,55 @@ int getDirection(int x, int y){
     return dir;
 }
 
-void collision(struct ballData *ball1, struct ballData *ball2);
+void collision(struct ballData *ball1, int oldX, int oldY, struct ballData *ball2);
 
-void tryMoving(struct ballData *ball,int newX, int newY){
-    if (positions[newX][newY] == -1){// No collision
-        positions[newX][newY] = ball->id;
-        positions[ball->x][ball->y] = -1;
-        ball->x = newX;
-        ball->y = newY;
-    }else{ // Crashing
-        printf("Balls collided\n");
-        struct ballData *ball2 = &balls[positions[newX][newY]];
-        collision(ball, ball2);
-    }
-}
-
-void getXY(int dir, struct ballData *ball, int *newX, int *newY){
+void getXY(int dir, int oldX, int oldY, int *newX, int *newY){
     switch (dir){
         case 0: // N
-            *newX = ball->x-1;
-            *newY = ball->y;
+            *newX = oldX-1;
+            *newY = oldY;
             break;
         case 1: // S
-            *newX = ball->x+1;
-            *newY = ball->y;
+            *newX = oldX+1;
+            *newY = oldY;
             break;
         case 2: // E
-            *newX = ball->x;
-            *newY = ball->y+1;
+            *newX = oldX;
+            *newY = oldY+1;
             break;
         case 3: // W
-            *newX = ball->x;
-            *newY = ball->y-1;
+            *newX = oldX;
+            *newY = oldY-1;
             break;
     }
 }
 
-void collision(struct ballData *ball1, struct ballData *ball2){
+void tryMoving(struct ballData *ball, int oldX, int oldY, int newX, int newY){
+    if (positions[newX][newY] == -1){// No collision
+        positions[newX][newY] = ball->id;
+        if (positions[ball->x][ball->y] == ball->id){
+            positions[ball->x][ball->y] = -1;
+        }
+        ball->x = newX;
+        ball->y = newY;
+    } else{ // Crashing
+        setColor(4);
+        printf("Collision!\n");
+        setColor(-1);
+        struct ballData *ball2 = &balls[positions[newX][newY]];
+        collision(ball, newX, newY, ball2);
+    }
+}
+
+void collision(struct ballData *ball1, int oldX, int oldY, struct ballData *ball2){
     int dir1 = rand() % 4;
     int dir2;
     while((dir2 = rand() % 4) == dir1);
     int newX, newY;
-    getXY(dir1, ball1, &newX, &newY);
-    tryMoving(ball1, newX, newY);
-    getXY(dir2, ball2, &newX, &newY);
-    tryMoving(ball2, newX, newY);
+    getXY(dir1, oldX, oldY, &newX, &newY);
+    tryMoving(ball1, oldX, oldY, newX, newY);
+    getXY(dir2, oldX, oldY, &newX, &newY);
+    tryMoving(ball2, oldX, oldY, newX, newY);
 }
 
 void *ballBehaviour(void *threadId) { 
@@ -167,8 +172,8 @@ void *ballBehaviour(void *threadId) {
     struct ballData *ball = &balls[tid];
     // First position
     while(finished){
-        int x = rand() % 5;
-        int y = rand() % 7;
+        int x = rand() % sizeof(island)/sizeof(island[0]);
+        int y = rand() % sizeof(island[0])/sizeof(island[0][0]);
         pthread_mutex_lock(&lockTurn);
         if(positions[x][y] == -1){
             printf("Init pos ball %ld: [%d][%d]\n", tid, x, y);
@@ -198,9 +203,9 @@ void *ballBehaviour(void *threadId) {
         int currHeight = island[ball->x][ball->y];
         int direction = getDirection(ball->x, ball->y);
         int newX, newY;
-        getXY(direction, ball, &newX, &newY);
-        if(island[newX][newY] <= island[ball->x][ball->y]){
-            tryMoving(ball, newX, newY);
+        getXY(direction, ball->x, ball->y, &newX, &newY);
+        if(island[newX][newY] <= island[ball->x][ball->y]){ // Check if height is possible
+            tryMoving(ball, ball->x, ball->y, newX, newY);
             printf("To [%d][%d] : level %d\n", balls[tid].x, balls[tid].y, island[ball->x][ball->y]);
             if(island[ball->x][ball->y] == 0){
                 finished = 0;
