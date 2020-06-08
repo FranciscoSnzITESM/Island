@@ -192,11 +192,11 @@ void collision(struct ballData *ball1, struct ballData *ball2){
     printf("Ball %ld moving from [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
     tryMoving(ball2, newX, newY);
     printf("Ball %ld moved to [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
+    checkIfDrowned(ball2);
     // Finish moving the other ball
     int dir1 = rand() % 4;
     getXY(dir1, ball1, &newX, &newY);
     tryMoving(ball1, newX, newY);
-    checkIfDrowned(ball1);
 }
 
 void *ballBehaviour(void *threadId) { 
@@ -272,8 +272,8 @@ int main(int argc, char** argv){
     }
     srand(time(0));
     int n = atoi(argv[1]);
-    if(n <= 0 || n > 40){
-        printf("Error: number of balls must a number, be higher than 0 and less than 40 \n");
+    if(n <= 0 || n > 80){
+        printf("Error: number of balls must a number, be higher than 0 and less or equal than 80 \n");
         return -1;
     }
     trappedBalls = 0;
