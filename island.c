@@ -26,6 +26,7 @@ int positions[8][10] = {
     {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 };
 
+
 pthread_mutex_t lockTurn;
 
 struct ballData {
@@ -79,7 +80,7 @@ void printStatus(){
     // Print Y Axis for Positions Map
     printf("\t\t\t\t\t   ");
     for(i = 0; i < sizeof(island[0])/sizeof(island[0][0]);i++){
-        printf("%d  ", i);
+        printf("%-2d  ", i);
     }
     printf("\n");
     for(i = 0; i < sizeof(island)/sizeof(island[0]);i++){
@@ -94,9 +95,9 @@ void printStatus(){
             
             setColor(island[i][j]);
             if(positions[i][j] == -1){
-                printf("_");
+                printf("__");
             }else{
-                printf("%d", positions[i][j]);
+                printf("%-2d", positions[i][j]);
             }
             setColor(-1);
             printf(", ");
@@ -272,8 +273,9 @@ int main(int argc, char** argv){
     }
     srand(time(0));
     int n = atoi(argv[1]);
-    if(n <= 0 || n > 80){
-        printf("Error: number of balls must a number, be higher than 0 and less or equal than 80 \n");
+    int size = sizeof(island)/sizeof(island[0][0]);
+    if(n <= 0 || n > size){
+        printf("Error: number of balls must a number, be higher than 0 and less or equal than %d \n", size);
         return -1;
     }
     trappedBalls = 0;
