@@ -186,18 +186,17 @@ void collision(struct ballData *ball1, struct ballData *ball2){
     // Get Random Directions
     int newX, newY;
     do {
-        int dir1 = rand() % 4;
-        getXY(dir1, ball1, &newX, &newY);
-    }while(newX == ball2->x && newY == ball2->y);
-    tryMoving(ball1, newX, newY);
-    // Finish moving the other ball
+        int dir2 = rand() % 4;
+        getXY(dir2, ball2, &newX, &newY);
+    }while(newX == ball1->x && newY == ball1->y);
     printf("Ball %ld moving from [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
-
-    int dir2 = rand() % 4;
-    getXY(dir2, ball2, &newX, &newY);
     tryMoving(ball2, newX, newY);
     printf("Ball %ld moved to [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
-    checkIfDrowned(ball2);
+    // Finish moving the other ball
+    int dir1 = rand() % 4;
+    getXY(dir1, ball1, &newX, &newY);
+    tryMoving(ball1, newX, newY);
+    checkIfDrowned(ball1);
 }
 
 void *ballBehaviour(void *threadId) { 
@@ -273,8 +272,8 @@ int main(int argc, char** argv){
     }
     srand(time(0));
     int n = atoi(argv[1]);
-    if(n <= 0){
-        printf("Error, number of balls must a number or be higher than 0\n");
+    if(n <= 0 || n > 40){
+        printf("Error: number of balls must a number, be higher than 0 and less than 40 \n");
         return -1;
     }
     trappedBalls = 0;
