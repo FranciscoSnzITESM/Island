@@ -76,6 +76,12 @@ void setColor(int level){
 
 void printStatus(){
     int i, j;
+    // Print Y Axis for Positions Map
+    printf("\t\t\t\t\t   ");
+    for(i = 0; i < sizeof(island[0])/sizeof(island[0][0]);i++){
+        printf("%d  ", i);
+    }
+    printf("\n");
     for(i = 0; i < sizeof(island)/sizeof(island[0]);i++){
         for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
             setColor(island[i][j]);
@@ -83,8 +89,9 @@ void printStatus(){
             setColor(-1);
             printf(", ");
         }
-        printf("\t\t");
+        printf("\t\t%d  ", i);
         for (j =0; j < sizeof(island[i])/sizeof(island[i][0]); j++){
+            
             setColor(island[i][j]);
             if(positions[i][j] == -1){
                 printf("_");
@@ -151,7 +158,7 @@ int checkIfDrowned(struct ballData *ball){
         } else if (ball->y == (sizeof(island[0])/sizeof(island[0][0]))-1){
             eastSea++;
         }
-        printf("Ball %ld Landed in water\n", ball->id);
+        printf("Ball %ld landed in water\n", ball->id);
         return 1;
     }
     return 0;
@@ -167,22 +174,26 @@ void tryMoving(struct ballData *ball, int newX, int newY){
         ball->y = newY;
     } else{ // Crashing
         setColor(4);
-        printf("Collision!\n");
+        printf("Collision!: ");
         setColor(-1);
         struct ballData *ball2 = &balls[positions[newX][newY]];
+        printf("Ball %ld collided with ball %ld at [%d][%d]\n", ball->id, ball2->id, ball2->x, ball2->y);
         collision(ball, ball2);
     }
 }
+
 void collision(struct ballData *ball1, struct ballData *ball2){
     // Get Random Directions
-    int dir1 = rand() % 4;
-    int dir2;
-    while((dir2 = rand() % 4) == dir1);
     int newX, newY;
-    getXY(dir1, ball1, &newX, &newY);
+    do {
+        int dir1 = rand() % 4;
+        getXY(dir1, ball1, &newX, &newY);
+    }while(newX == ball2->x && newY == ball2->y);
     tryMoving(ball1, newX, newY);
     // Finish moving the other ball
     printf("Ball %ld moving from [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
+
+    int dir2 = rand() % 4;
     getXY(dir2, ball2, &newX, &newY);
     tryMoving(ball2, newX, newY);
     printf("Ball %ld moved to [%d][%d] : level %d\n", ball2->id, ball2->x, ball2->y, island[ball2->x][ball2->y]);
