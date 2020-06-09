@@ -19,7 +19,11 @@ At the end where all the balls reach the ocean or get trapped, a little table is
 # Try the program!
 
 ## Compile code
+```
 make compile
+```
 
 ## Run code
+```
 ./island [numberOfBalls]
+```
