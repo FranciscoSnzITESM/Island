@@ -1,2 +1,5 @@
-gcc -o island island.c -pthread
-./island
+## Compile code
+make compile
+
+## Run code
+./island [numberOfBalls]
