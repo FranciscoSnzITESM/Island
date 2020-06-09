@@ -35,4 +35,5 @@ The structures of all balls are stored in a global array that is accessible for 
 ### Final Results
 There are global variables that keep track of the places where the balls landed.
 The ball threads are meant to update this variables whenever they land on water, letting us know if they landed north, south, east or west of the island, also if they get stuck inside the island (this happens when all the heights around the ball are higher), they will register themselves as stuck and finish.
+
 ![Results](results.jpg)
