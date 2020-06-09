@@ -17,6 +17,9 @@ This is a project that uses pthreads to simulate the behaviour of balls raining 
 
 ### Prerequisites
 
+- Read the code and the comments to understand the flow of the program.
+- We use one file for all the methods and variables.
+- We have the methods that help understand the behaviour of an Island when it rains.
 - You need to have a C compiler and the libraries of pthreads to be able to run this project.
 
 ### Installing
