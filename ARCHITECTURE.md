@@ -25,6 +25,8 @@ struct ballData {
     int y;
 };
 ```
+![BallData](balldata.jpg)
+
 With this we know their position, the id of the ball, and the id of the thread.
 
 The structures of all balls are stored in a global array that is accessible for everyone, this helps us communicate between threads whenever we have a collision.
